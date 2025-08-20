@@ -1,13 +1,16 @@
 import React from 'react';
 import { assets } from '../../assets/assets';
 
-const Footer = () => {
+import { AppContext } from '../../context/AppContext';
+
+  const Footer = () => {
+  const { navigate } = useContext(AppContext);
   return (
     <footer className="flex md:flex-row flex-col-reverse items-center justify-between text-left w-full px-8 border-t">
       <div className='flex items-center gap-4'>
         {/* <img className='hidden md:block w-20' src={assets.logo} alt="logo" /> */}
         
-      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full"
+      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full" onClick={() => navigate('/')}
           >
            AAUA LMS
           </h1>

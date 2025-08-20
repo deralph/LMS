@@ -59,7 +59,7 @@ const Navbar = () => {
         alt="Logo"
         className="w-28 lg:w-32 cursor-pointer"
       />*/}
-      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full"
+      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full" onClick={() => navigate('/')}
           >
            AAUA LMS
           </h1>

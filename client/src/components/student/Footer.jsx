@@ -1,7 +1,10 @@
 import React from 'react';
 import { assets } from '../../assets/assets';
 
-const Footer = () => {
+import { AppContext } from '../../context/AppContext';
+
+  const Footer = () => {
+  const { navigate } = useContext(AppContext);
   return (
     <footer className="bg-gray-900 md:px-36 text-left w-full mt-10">
       <div className="flex flex-col md:flex-row items-start px-8 md:px-0 justify-center gap-10 md:gap-32 py-10 border-b border-white/30">
@@ -9,7 +12,7 @@ const Footer = () => {
         <div className="flex flex-col md:items-start items-center w-full">
           {/* <img src={assets.logo_dark} alt="logo" /> */}
           
-      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full"
+      <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full" onClick={() => navigate('/')}
           >
            AAUA LMS
           </h1>

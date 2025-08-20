@@ -17,6 +17,7 @@ const StudentsEnrolled = () => {
       const { data } = await axios.post(backendUrl + '/api/educator/enrolled-students',{email:user.email},
         { headers: { Authorization: `Bearer ${token}` } }
       )
+      console.log("data in student enrolled ", data)
 
       if (data.success) {
         setEnrolledStudents(data.enrolledStudents.reverse())
@@ -60,7 +61,7 @@ const StudentsEnrolled = () => {
                   <span className="truncate">{item.student.name}</span>
                 </td>
                 <td className="px-4 py-3 truncate">{item.courseTitle}</td>
-                <td className="px-4 py-3 hidden sm:table-cell">{new Date(item.purchaseDate).toLocaleDateString()}</td>
+                <td className="px-4 py-3 hidden sm:table-cell">{new Date(item.enrolledDate).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>

@@ -24,7 +24,7 @@ const AddCourse = () => {
     lectureTitle: '',
     lectureDuration: '',
     lectureUrl: '',
-    isPreviewFree: false,
+    isPreviewFree: true,
   });
 
   const handleChapter = (action, chapterId) => {
@@ -86,7 +86,7 @@ const AddCourse = () => {
       lectureTitle: '',
       lectureDuration: '',
       lectureUrl: '',
-      isPreviewFree: false,
+      isPreviewFree: true,
     });
   };
 
@@ -245,14 +245,14 @@ const AddCourse = () => {
                     onChange={(e) => setLectureDetails({ ...lectureDetails, lectureUrl: e.target.value })}
                   />
                 </div>
-                <div className="flex gap-2 my-4">
+                {/* <div className="flex gap-2 my-4">
                   <p>Is Preview Free?</p>
                   <input
                     type="checkbox" className='mt-1 scale-125'
                     checked={lectureDetails.isPreviewFree}
                     onChange={(e) => setLectureDetails({ ...lectureDetails, isPreviewFree: e.target.checked })}
                   />
-                </div>
+                </div> */}
                 <button type='button' className="w-full bg-blue-400 text-white px-4 py-2 rounded" onClick={addLecture}>Add</button>
                 <img onClick={() => setShowPopup(false)} src={assets.cross_icon} className='absolute top-4 right-4 w-4 cursor-pointer' alt="" />
               </div>

@@ -19,7 +19,7 @@ const MyEnrollments = () => {
                 enrolledCourses.map(async (course) => {
                     const { data } = await axios.post(
                         `${backendUrl}/api/user/get-course-progress`,
-                        { courseId: course._id },
+                        { courseId: course._id , email :userData.email},
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
 

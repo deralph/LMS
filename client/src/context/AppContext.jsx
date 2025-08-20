@@ -33,7 +33,7 @@ export const AppContextProvider = (props) => {
       const { data } = await axios.get(`${backendUrl}/api/course/all`);
       if (data.success) setAllCourses(data.courses);
       else {
-        console.log(error.message);
+        console.log(data);
         toast.error(data.message);
       }
     } catch (error) {
@@ -114,7 +114,7 @@ export const AppContextProvider = (props) => {
   const fetchUserEnrolledCourses = async () => {
     try {
       const token = await getToken();
-      const { data } = await axios.get(
+      const { data } = await axios.post(
         `${backendUrl}/api/user/enrolled-courses`,{ email: user.email },
         { headers: { Authorization: `Bearer ${token}` } }
       );
