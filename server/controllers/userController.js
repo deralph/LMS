@@ -2,7 +2,6 @@ import Course from "../models/Course.js";
 import { CourseProgress } from "../models/CourseProgress.js";
 import { Purchase } from "../models/Purchase.js";
 import User from "../models/User.js";
-import stripe from "stripe";
 
 // Get User Data
 // export const getUserData = async (req, res) => {
@@ -75,65 +74,60 @@ export const getUserData = async (req, res) => {
 };
 
 // Purchase Course
+// Purchase Course
 export const purchaseCourse = async (req, res) => {
   try {
-    const { courseId,email } = req.body;
+    const { courseId, email } = req.body;
     const { origin } = req.headers;
 
-    // const userId = req.auth.userId;
-
+    // Find course and user
     const courseData = await Course.findById(courseId);
-    const userData = await User.findOne({email});
+    const userData = await User.findOne({ email });
 
     if (!userData || !courseData) {
+      console.log("data not found in enrolling");
       return res.json({ success: false, message: "Data Not Found" });
     }
 
+    // Calculate amount (still keep the structure)
     const purchaseData = {
       courseId: courseData._id,
-      userId:userData._id,
+      userId: userData._id,
       amount: (
         courseData.coursePrice -
         (courseData.discount * courseData.coursePrice) / 100
       ).toFixed(2),
     };
 
+    // Save purchase in DB
     const newPurchase = await Purchase.create(purchaseData);
+    console.log("new enrolled course ", newPurchase);
 
-    // Stripe Gateway Initialize
-    const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+    // 🔑 Add course to user.enrolledCourses if not already there
+    if (!userData.enrolledCourses.includes(courseData._id)) {
+      userData.enrolledCourses.push(courseData._id);
+      await userData.save();
+    }
 
-    const currency = process.env.CURRENCY.toLocaleLowerCase();
+    // 🔑 Add user to course.enrolledStudents if not already there
+    if (!courseData.enrolledStudents.includes(userData._id.toString())) {
+      courseData.enrolledStudents.push(userData._id.toString());
+      await courseData.save();
+    }
 
-    // Creating line items to for Stripe
-    const line_items = [
-      {
-        price_data: {
-          currency,
-          product_data: {
-            name: courseData.courseTitle,
-          },
-          unit_amount: Math.floor(newPurchase.amount) * 100,
-        },
-        quantity: 1,
-      },
-    ];
-
-    const session = await stripeInstance.checkout.sessions.create({
-      success_url: `${origin}/loading/my-enrollments`,
-      cancel_url: `${origin}/`,
-      line_items: line_items,
-      mode: "payment",
-      metadata: {
-        purchaseId: newPurchase._id.toString(),
-      },
+   
+    // Instead of Stripe session, send back success + redirect URL
+    return res.json({
+      success: true,
+      message: "Course successfully enrolled for free",
+      purchase: newPurchase,
+      session_url: `${origin}/loading/my-enrollments`,
     });
-
-    res.json({ success: true, session_url: session.url });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
+
 
 // Users Enrolled Courses With Lecture Links
 export const userEnrolledCourses = async (req, res) => {
@@ -158,6 +152,7 @@ export const updateUserCourseProgress = async (req, res) => {
     const { courseId, lectureId,email } = req.body;
 
     const userData = await User.findOne({email});
+    const userId = userData._id
     const progressData = await CourseProgress.findOne({ userId, courseId });
 
     if (progressData) {
@@ -172,7 +167,7 @@ export const updateUserCourseProgress = async (req, res) => {
       await progressData.save();
     } else {
       await CourseProgress.create({
-        userId:userData._id,
+        userId,
         courseId,
         lectureCompleted: [lectureId],
       });

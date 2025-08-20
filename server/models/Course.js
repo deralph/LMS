@@ -16,31 +16,35 @@ const chapterSchema = new mongoose.Schema({
     chapterContent: [lectureSchema] // Use the lecture schema here
 }, { _id: false });
 
+
 const courseSchema = new mongoose.Schema({
-    courseTitle: { type: String, required: true },
-    courseDescription: { type: String, required: true },
-    courseThumbnail: { type: String },
-    coursePrice: { type: Number, required: true,default:0 },
-    isPublished: { type: Boolean, default: true },
-    discount: { type: Number, required: true, min: 0, max: 100,default:0 },
-    courseContent: [chapterSchema], // Use the chapter schema here
-    educator: {
-        type: String,
-        ref: 'User',
-        required: true
-    },
-    courseRatings: [
-        {
-            userId: { type: String },
-            rating: { type: Number, min: 1, max: 5 }
-        }
-    ],
-    enrolledStudents: [
-        {
-            type: String,
-            ref: 'User'
-        }
-    ],
+  courseTitle: { type: String, required: true },
+  courseDescription: { type: String, required: true },
+  courseThumbnail: { type: String },
+  coursePrice: { type: Number, required: true, default: 0 },
+  isPublished: { type: Boolean, default: true },
+  discount: { type: Number, required: true, min: 0, max: 100, default: 0 },
+  courseContent: [chapterSchema],
+
+  educator: {
+    type: mongoose.Schema.Types.ObjectId,   // ✅ change from String
+    ref: 'User',
+    required: true,
+  },
+
+  courseRatings: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // ✅ better
+      rating: { type: Number, min: 1, max: 5 },
+    }
+  ],
+
+  enrolledStudents: [
+    {
+      type: mongoose.Schema.Types.ObjectId,   // ✅ change from String
+      ref: 'User',
+    }
+  ],
 }, { timestamps: true, minimize: false });
 
 const Course = mongoose.model('Course', courseSchema);

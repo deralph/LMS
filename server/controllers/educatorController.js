@@ -163,46 +163,42 @@ export const educatorDashboardData = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
-
-// Get Enrolled Students Data with Purchase Data
+// Get Enrolled Students Data with Course Enrollment
 export const getEnrolledStudentsData = async (req, res) => {
-    try {
-        // const educator = req.auth.userId;
+  try {
+    const { email } = req.body;
 
-           const { email } = req.body;
-    
-    const userData = await User.findOne({email});
-    const educator = userData._id
+    // Get educator by email
+    const userData = await User.findOne({ email });
+    const educator = userData._id;
 
+    console.log("educator id = ", educator);
 
-        // Fetch all courses created by the educator
-        const courses = await Course.find({ educator });
+    // Fetch all courses created by this educator (with enrolled students populated)
+    const courses = await Course.find({ educator })
+      .populate("enrolledStudents", "name email imageUrl");
 
-        // Get the list of course IDs
-        const courseIds = courses.map(course => course._id);
+    console.log("educator courses = ", courses);
 
-        // Fetch purchases with user and course data
-        const purchases = await Purchase.find({
-            courseId: { $in: courseIds },
-            status: 'completed'
-        }).populate('userId', 'name imageUrl').populate('courseId', 'courseTitle');
+    // Collect enrolled students from all courses
+    const enrolledStudents = courses.flatMap(course =>
+      course.enrolledStudents.map(student => ({
+        student,
+        courseTitle: course.courseTitle,
+        enrolledDate: course.createdAt, // Or you can track specific enrollment date if you store it
+      }))
+    );
 
-        // enrolled students data
-        const enrolledStudents = purchases.map(purchase => ({
-            student: purchase.userId,
-            courseTitle: purchase.courseId.courseTitle,
-            purchaseDate: purchase.createdAt
-        }));
+    console.log("educator enrolled students = ", enrolledStudents);
 
-        res.json({
-            success: true,
-            enrolledStudents
-        });
-
-    } catch (error) {
-        res.json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.json({
+      success: true,
+      enrolledStudents,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
