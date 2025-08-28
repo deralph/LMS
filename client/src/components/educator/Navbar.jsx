@@ -1,35 +1,39 @@
 import React, { useContext } from 'react';
 import { assets } from '../../assets/assets';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppContext } from '../../context/AppContext';
 
 const Navbar = ({ bgColor }) => {
-  const { isEducator, user, isAuthenticated, logout,navigate } = useContext(AppContext);
+  const { userData, isLoggedIn, logout } = useContext(AppContext);
+  const navigate = useNavigate();
 
-  if (!isEducator || !isAuthenticated) return null;
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // If user is not authenticated, don't show the navbar
+  if (!isLoggedIn()) return null;
 
   return (
     <div
-      className={`flex items-center justify-between px-4 md:px-8 border-b border-gray-500 py-3 ${bgColor}`}
+      className={`flex items-center justify-between px-4 md:px-8 border-b border-gray-500 py-3 ${bgColor || 'bg-white'}`}
     >
-      <Link to="/">
-        {/* <img src={assets.logo} alt="Logo" className="w-28 lg:w-32" /> */}
-        <h1 className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full" onClick={() => navigate('/')}
-          >
-           AAUA LMS
-          </h1>
-      
+      <Link to={userData?.role === 'educator' ? '/educator/dashboard' : '/'}>
+        <h1 
+          className="text-blue-600 text-xl font-bold px-5 py-2 rounded-full cursor-pointer"
+        >
+          AAUA LMS
+        </h1>
       </Link>
       <div className="flex items-center gap-5 text-gray-500 relative">
-        <p>Hi! {user.name}</p>
-        <img
-          src={user.picture}
-          alt={user.name}
-          className="w-8 h-8 rounded-full"
-        />
+        <p>Hi! {userData?.fullName}</p>
+        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+          {userData?.fullName?.charAt(0) || 'U'}
+        </div>
         <button
-          onClick={() => logout({ returnTo: window.location.origin })}
-          className="text-red-500"
+          onClick={handleLogout}
+          className="text-red-500 hover:text-red-700"
         >
           Logout
         </button>

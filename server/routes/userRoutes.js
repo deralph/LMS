@@ -5,9 +5,9 @@ import {
   getUserData,
   purchaseCourse,
   updateUserCourseProgress,
-  userEnrolledCourses,registerUserIfNotExists
+  userEnrolledCourses,getMe
 } from "../controllers/userController.js";
-
+import auth from '../middleware/auth.js';
 const userRouter = express.Router();
 
 // Get user Data
@@ -17,6 +17,6 @@ userRouter.post("/enrolled-courses", userEnrolledCourses);
 userRouter.post("/update-course-progress", updateUserCourseProgress);
 userRouter.post("/get-course-progress", getUserCourseProgress);
 userRouter.post("/add-rating", addUserRating);
-userRouter.post("/register", registerUserIfNotExists);
+userRouter.get('/me', auth, getMe);
 
 export default userRouter;

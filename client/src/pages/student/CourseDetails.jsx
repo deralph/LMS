@@ -14,7 +14,7 @@ const CourseDetails = () => {
   const [courseData, setCourseData] = useState(null)
   const [playerData, setPlayerData] = useState(null)
   const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false)
-  const { backendUrl, currency, userData, calculateChapterTime, calculateCourseDuration, calculateRating, calculateNoOfLectures, user } = useContext(AppContext)
+  const { backendUrl, currency, userData, calculateChapterTime, calculateCourseDuration, calculateRating, calculateNoOfLectures } = useContext(AppContext)
   const [openSections, setOpenSections] = useState({});
 
   const fetchCourseData = async () => {
@@ -47,7 +47,7 @@ const CourseDetails = () => {
       }
 
       const { data } = await axios.post(backendUrl + '/api/user/purchase',
-        { courseId: courseData._id, email: user.email }
+        { courseId: courseData._id, email: userData.email }
       )
 
       if (data.success) {

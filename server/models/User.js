@@ -1,19 +1,23 @@
-    import mongoose from "mongoose";
+// models/User.js
+import mongoose from 'mongoose';
 
-    const userSchema = new mongoose.Schema({
-            name: { type: String, required: true },
-        email: { type: String, required: true,unique:true },
-        imageUrl: { type: String, required: true },
-        enrolledCourses: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Course'
-            }
-        ],
-        role: { type: String, required: true, default: "student" },
-    }, { timestamps: true });
+const userSchema = new mongoose.Schema({
+  fullName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['student', 'educator'], required: true },
+  
+  // Student-specific fields
+  matricNumber: { type: String, sparse: true }, // sparse index because educators won't have this
+  level: { type: String },
+  courseOfStudy: { type: String },
+  
+  // Educator-specific fields
+  staffId: { type: String, sparse: true }, // sparse index because students won't have this
+  
+  // Common fields
+  enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+  createdAt: { type: Date, default: Date.now }
+});
 
-    // Use existing model if already compiled
-    const User = mongoose.models.User || mongoose.model("User", userSchema);
-
-    export default User;
+export default mongoose.model('User', userSchema);

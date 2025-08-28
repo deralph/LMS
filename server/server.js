@@ -6,6 +6,7 @@ import 'dotenv/config';
 import connectDB from './configs/mongodb.js';
 import connectCloudinary from './configs/cloudinary.js';
 import userRouter from './routes/userRoutes.js';
+import authRouter from './routes/authRoute.js';
 import educatorRouter from './routes/educatorRoutes.js';
 import courseRouter from './routes/courseRoute.js';
 
@@ -27,6 +28,7 @@ app.get('/', (req, res) => res.send('API Working'));
 app.use('/api/educator',   educatorRouter);
 app.use('/api/course',    courseRouter);
 app.use('/api/user',    userRouter);
+app.use('/api/auth',    authRouter);
 
 // Port
 const PORT = process.env.PORT || 5000;

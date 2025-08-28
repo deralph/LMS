@@ -2,57 +2,17 @@ import Course from "../models/Course.js";
 import { CourseProgress } from "../models/CourseProgress.js";
 import { Purchase } from "../models/Purchase.js";
 import User from "../models/User.js";
+import auth from '../middleware/auth.js';
 
-// Get User Data
-// export const getUserData = async (req, res) => {
-//     try {
-
-//         const userId = req.auth.userId
-
-//         const user = await User.findById(userId)
-
-//         if (!user) {
-//             return res.json({ success: false, message: 'User Not Found' })
-//         }
-
-//         res.json({ success: true, user })
-
-//     } catch (error) {
-//         res.json({ success: false, message: error.message })
-//     }
-// }
-
-// controllers/userController.js
-
-export const registerUserIfNotExists = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
-    // const userId = req.auth.userId;
-    // console.log(userId)
-    const { name, email, imageUrl } = req.body;
-    console.log(req.body)
-
-    let user = await User.findOne({email});
-console.log("first checking for user", user)
-if (!user) {
-  user = new User({
-    name,
-    email,
-    imageUrl,
-    role: "student", // default
-  });
-  
-  await user.save();
-  console.log("second checking for user", user)
-      return res.json({ success: true, message: "User created", user });
-    }
-
-    res.json({ success: true, message: "User already exists", user });
+    const user = await User.findById(req.user.id).select('-password');
+    res.json({ success: true, user });
   } catch (error) {
-    console.log("error",error)
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-};
-
+}
 export const getUserData = async (req, res) => {
   try {
     // const userId = req.auth.userId;
