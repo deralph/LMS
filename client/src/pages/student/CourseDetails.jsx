@@ -7,42 +7,28 @@ import { AppContext } from '../../context/AppContext';
 import { toast } from 'react-toastify';
 import humanizeDuration from 'humanize-duration'
 import YouTube from 'react-youtube';
-// import { useAuth } from '@clerk/clerk-react';
 import Loading from '../../components/student/Loading';
 
 const CourseDetails = () => {
-
   const { id } = useParams()
-
   const [courseData, setCourseData] = useState(null)
   const [playerData, setPlayerData] = useState(null)
   const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false)
-
-  const { backendUrl, currency, userData, calculateChapterTime, calculateCourseDuration, calculateRating, calculateNoOfLectures,user } = useContext(AppContext)
-  // const { getToken } = useAuth()
-
+  const { backendUrl, currency, userData, calculateChapterTime, calculateCourseDuration, calculateRating, calculateNoOfLectures, user } = useContext(AppContext)
+  const [openSections, setOpenSections] = useState({});
 
   const fetchCourseData = async () => {
-
     try {
-
       const { data } = await axios.get(backendUrl + '/api/course/' + id)
-
       if (data.success) {
         setCourseData(data.courseData)
       } else {
         toast.error(data.message)
       }
-
     } catch (error) {
-
       toast.error(error.message)
-
     }
-
   }
-
-  const [openSections, setOpenSections] = useState({});
 
   const toggleSection = (index) => {
     setOpenSections((prev) => ({
@@ -51,24 +37,17 @@ const CourseDetails = () => {
     }));
   };
 
-
   const enrollCourse = async () => {
-
     try {
-
       if (!userData) {
         return toast.warn('Login to Enroll')
       }
-
       if (isAlreadyEnrolled) {
         return toast.warn('Already Enrolled')
       }
 
-      // const token = await getToken();
-
       const { data } = await axios.post(backendUrl + '/api/user/purchase',
-        { courseId: courseData._id,email:user.email },
-        // { headers: { Authorization: `Bearer ${token}` } }
+        { courseId: courseData._id, email: user.email }
       )
 
       if (data.success) {
@@ -77,9 +56,26 @@ const CourseDetails = () => {
       } else {
         toast.error(data.message)
       }
-
     } catch (error) {
       toast.error(error.message)
+    }
+  }
+
+  // Function to handle preview based on lecture type
+  const handlePreview = (lecture) => {
+    if (lecture.lectureType === 'youtube') {
+      // Extract video ID for YouTube
+      const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#&?]*).*/;
+      const match = lecture.lectureUrl.match(regExp);
+      const videoId = (match && match[2].length === 11) ? match[2] : null;
+      
+      setPlayerData({ 
+        videoId,
+        type: 'youtube'
+      });
+    } else if (lecture.lectureType === 'pdf' || lecture.lectureType === 'image') {
+      // For PDF and image, open in new tab
+      window.open(lecture.lectureUrl, '_blank');
     }
   }
 
@@ -88,11 +84,9 @@ const CourseDetails = () => {
   }, [])
 
   useEffect(() => {
-
     if (userData && courseData) {
       setIsAlreadyEnrolled(userData.enrolledCourses.includes(courseData._id))
     }
-
   }, [userData, courseData])
 
   return courseData ? (
@@ -145,9 +139,14 @@ const CourseDetails = () => {
                           <div className="flex items-center justify-between w-full text-gray-800 text-xs md:text-default">
                             <p>{lecture.lectureTitle}</p>
                             <div className='flex gap-2'>
-                              {lecture.isPreviewFree && <p onClick={() => setPlayerData({
-                                videoId: lecture.lectureUrl.split('/').pop()
-                              })} className='text-blue-500 cursor-pointer'>Preview</p>}
+                              {lecture.isPreviewFree && (
+                                <p 
+                                  onClick={() => handlePreview(lecture)} 
+                                  className='text-blue-500 cursor-pointer'
+                                >
+                                  Preview
+                                </p>
+                              )}
                               <p>{humanizeDuration(lecture.lectureDuration * 60 * 1000, { units: ['h', 'm'] })}</p>
                             </div>
                           </div>
@@ -168,23 +167,16 @@ const CourseDetails = () => {
         </div>
 
         <div className="max-w-course-card z-10 shadow-custom-card rounded-t md:rounded-none overflow-hidden bg-white min-w-[300px] sm:min-w-[420px]">
-          {
-            playerData
-              ? <YouTube videoId={playerData.videoId} opts={{ playerVars: { autoplay: 1 } }} iframeClassName='w-full aspect-video' />
-              : <img src={courseData.courseThumbnail} alt="" />
-          }
+          {playerData && playerData.type === 'youtube' ? (
+            <YouTube 
+              videoId={playerData.videoId} 
+              opts={{ playerVars: { autoplay: 1 } }} 
+              iframeClassName='w-full aspect-video' 
+            />
+          ) : (
+            <img src={courseData.courseThumbnail} alt="" />
+          )}
           <div className="p-5">
-            {/* <div className="flex items-center gap-2">
-              <img className="w-3.5" src={assets.time_left_clock_icon} alt="time left clock icon" />
-              <p className="text-red-500">
-                <span className="font-medium">5 days</span> left at this price!
-              </p>
-            </div> */}
-            {/* <div className="flex gap-3 items-center pt-2">
-              <p className="text-gray-800 md:text-4xl text-2xl font-semibold">{currency}{(courseData.coursePrice - courseData.discount * courseData.coursePrice / 100).toFixed(2)}</p>
-              <p className="md:text-lg text-gray-500 line-through">{currency}{courseData.coursePrice}</p>
-              <p className="md:text-lg text-gray-500">{courseData.discount}% off</p>
-            </div> */}
             <div className="flex items-center text-sm md:text-default gap-4 pt-2 md:pt-4 text-gray-500">
               <div className="flex items-center gap-1">
                 <img src={assets.star} alt="star icon" />
@@ -210,8 +202,6 @@ const CourseDetails = () => {
                 <li>Lifetime access with free updates.</li>
                 <li>Step-by-step, hands-on project guidance.</li>
                 <li>Downloadable resources and source code.</li>
-                {/* <li>Quizzes to test your knowledge.</li>
-                <li>Certificate of completion.</li> */}
               </ul>
             </div>
           </div>

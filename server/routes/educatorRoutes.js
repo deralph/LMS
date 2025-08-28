@@ -4,7 +4,7 @@ import {
   educatorDashboardData,
   getEducatorCourses,
   getEnrolledStudentsData,
-  updateRoleToEducator,
+  updateRoleToEducator,uploadFile
 } from "../controllers/educatorController.js";
 import upload from "../configs/multer.js";
 
@@ -16,6 +16,8 @@ educatorRouter.post("/update-role", updateRoleToEducator);
 // Add Courses
 // educatorRouter.post('/add-course', upload.single('image'), protectEducator, addCourse)
 educatorRouter.post("/add-course", upload.single("image"), addCourse);
+
+educatorRouter.post('/upload-file', upload.single('file'), uploadFile)
 
 // Get Educator Courses
 educatorRouter.post("/courses", getEducatorCourses);

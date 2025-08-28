@@ -7,16 +7,17 @@ import axios from 'axios'
 import { AppContext } from '../../context/AppContext';
 
 const AddCourse = () => {
+  const cloudinaryName = import.meta.env.VITE_CLOUDINARY_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_NAME;
 
   const editorRef = useRef(null);
   const quillRef = useRef(null);
+  const { backendUrl, getToken, user } = useContext(AppContext);
 
-  const { backendUrl, getToken,user } = useContext(AppContext)
-
-  const [courseTitle, setCourseTitle] = useState('')
-  const [coursePrice, setCoursePrice] = useState(0)
-  const [discount, setDiscount] = useState(0)
-  const [image, setImage] = useState(null)
+  const [courseTitle, setCourseTitle] = useState('');
+  const [coursePrice, setCoursePrice] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [image, setImage] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [currentChapterId, setCurrentChapterId] = useState(null);
@@ -24,8 +25,11 @@ const AddCourse = () => {
     lectureTitle: '',
     lectureDuration: '',
     lectureUrl: '',
+    lectureType: 'youtube',
     isPreviewFree: true,
+    lectureFile: null,
   });
+  const [uploading, setUploading] = useState(false);
 
   const handleChapter = (action, chapterId) => {
     if (action === 'add') {
@@ -67,36 +71,124 @@ const AddCourse = () => {
     }
   };
 
-  const addLecture = () => {
+  // Function to upload file to backend which will then upload to Cloudinary
+  const uploadFileToServer = async (file, lectureType) => {
+    console.log("lecture type in function = ",lectureType)
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('resourceType', lectureType === 'pdf' ? 'raw' : 'image');
+    formData.append('fileName', file.name); // Pass the original file name
+    
+    try {
+      const token = await getToken();
+      const response = await axios.post(
+        `${backendUrl}/api/educator/upload-file`,
+        formData,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          } 
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.fileUrl;
+      } else {
+        throw new Error(response.data.message || 'Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
+      throw error;
+    }
+  };
+
+  const addLecture = async () => {
+    // Validate inputs
+    if (!lectureDetails.lectureTitle) {
+      toast.error('Please enter a lecture title');
+      return;
+    }
+    
+    if (!lectureDetails.lectureDuration || Number(lectureDetails.lectureDuration) <= 0) {
+      toast.error('Please enter a valid duration');
+      return;
+    }
+    
+    if (lectureDetails.lectureType === 'youtube' && !lectureDetails.lectureUrl) {
+      toast.error('Please enter a YouTube URL');
+      return;
+    }
+    
+    if ((lectureDetails.lectureType === 'pdf' || lectureDetails.lectureType === 'image') && !lectureDetails.lectureFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+    console.log("lecture file = ",lectureDetails.lectureType)
+    
+    let finalUrl = lectureDetails.lectureUrl;
+    
+    // If a file is uploaded, upload it to the server first
+    if (lectureDetails.lectureFile) {
+      try {
+        setUploading(true);
+        finalUrl = await uploadFileToServer(lectureDetails.lectureFile, lectureDetails.lectureType);
+      } catch (error) {
+        setUploading(false);
+        return; // Stop if upload fails
+      }
+    }
+    
     setChapters(
       chapters.map((chapter) => {
         if (chapter.chapterId === currentChapterId) {
           const newLecture = {
-            ...lectureDetails,
+            lectureTitle: lectureDetails.lectureTitle,
+            lectureDuration: lectureDetails.lectureDuration,
+            lectureUrl: finalUrl,
+            lectureType: lectureDetails.lectureType,
             lectureOrder: chapter.chapterContent.length > 0 ? chapter.chapterContent.slice(-1)[0].lectureOrder + 1 : 1,
-            lectureId: uniqid()
+            lectureId: uniqid(),
+            isPreviewFree: lectureDetails.isPreviewFree,
           };
           chapter.chapterContent.push(newLecture);
         }
         return chapter;
       })
     );
+    
     setShowPopup(false);
+    setUploading(false);
     setLectureDetails({
       lectureTitle: '',
       lectureDuration: '',
       lectureUrl: '',
+      lectureType: 'youtube',
       isPreviewFree: true,
+      lectureFile: null,
     });
   };
 
   const handleSubmit = async (e) => {
     try {
-
       e.preventDefault();
 
       if (!image) {
-        toast.error('Thumbnail Not Selected')
+        toast.error('Thumbnail Not Selected');
+        return;
+      }
+
+      if (chapters.length === 0) {
+        toast.error('Please add at least one chapter');
+        return;
+      }
+
+      // Check if all chapters have at least one lecture
+      const emptyChapters = chapters.filter(chapter => chapter.chapterContent.length === 0);
+      if (emptyChapters.length > 0) {
+        toast.error('Each chapter must have at least one lecture');
+        return;
       }
 
       const courseData = {
@@ -105,49 +197,44 @@ const AddCourse = () => {
         coursePrice: Number(coursePrice),
         discount: Number(discount),
         courseContent: chapters,
-      }
+      };
 
-      const formData = new FormData()
-      formData.append('courseData', JSON.stringify(courseData))
-      formData.append('image', image)
-      formData.append('email', user.email)
+      const formData = new FormData();
+      formData.append('courseData', JSON.stringify(courseData));
+      formData.append('image', image);
+      formData.append('email', user.email);
 
-      const token = await getToken()
+      const token = await getToken();
 
-      const { data } = await axios.post(backendUrl + '/api/educator/add-course', formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const { data } = await axios.post(
+        backendUrl + '/api/educator/add-course', 
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
 
       if (data.success) {
-        toast.success(data.message)
-        setCourseTitle('')
-        setCoursePrice(0)
-        setDiscount(0)
-        setImage(null)
-        setChapters([])
-        quillRef.current.root.innerHTML = ""
-      } else (
-        toast.error(data.message)
-      )
-
+        toast.success(data.message);
+        setCourseTitle('');
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        quillRef.current.root.innerHTML = "";
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
-
   };
 
   useEffect(() => {
-    // Initiate Quill only once
     if (!quillRef.current && editorRef.current) {
       quillRef.current = new Quill(editorRef.current, {
         theme: 'snow',
       });
     }
   }, []);
-
-  useEffect(() => {
-    console.log(chapters);
-  }, [chapters]);
 
   return (
     <div className='h-screen overflow-scroll flex flex-col items-start justify-between md:p-8 md:pb-0 p-4 pt-8 pb-0'>
@@ -163,11 +250,6 @@ const AddCourse = () => {
         </div>
 
         <div className='flex items-center justify-between flex-wrap'>
-          {/* <div className='flex flex-col gap-1'>
-            <p>Course Price</p>
-            <input onChange={e => setCoursePrice(e.target.value)} value={coursePrice} type="number" placeholder='0' className='outline-none md:py-2.5 py-2 w-28 px-3 rounded border border-gray-500' required />
-          </ div> */}
-
           <div className='flex md:flex-row flex-col items-center gap-3'>
             <p>Course Thumbnail</p>
             <label htmlFor='thumbnailImage' className='flex items-center gap-3'>
@@ -177,11 +259,6 @@ const AddCourse = () => {
             </label>
           </div>
         </div>
-
-        {/* <div className='flex flex-col gap-1'>
-          <p>Discount %</p>
-          <input onChange={e => setDiscount(e.target.value)} value={discount} type="number" placeholder='0' min={0} max={100} className='outline-none md:py-2.5 py-2 w-28 px-3 rounded border border-gray-500' required />
-        </div> */}
 
         {/* Adding Chapters & Lectures */}
         <div>
@@ -199,7 +276,15 @@ const AddCourse = () => {
                 <div className="p-4">
                   {chapter.chapterContent.map((lecture, lectureIndex) => (
                     <div key={lectureIndex} className="flex justify-between items-center mb-2">
-                      <span>{lectureIndex + 1} {lecture.lectureTitle} - {lecture.lectureDuration} mins - <a href={lecture.lectureUrl} target="_blank" className="text-blue-500">Link</a> - {lecture.isPreviewFree ? 'Free Preview' : 'Paid'}</span>
+                      <span>
+                        {lectureIndex + 1} {lecture.lectureTitle} - {lecture.lectureDuration} mins - 
+                        {lecture.lectureType === 'youtube' ? (
+                          <a href={lecture.lectureUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500"> YouTube Link</a>
+                        ) : (
+                          <span className="text-blue-500"> {lecture.lectureType.toUpperCase()} File</span>
+                        )}
+                        - {lecture.isPreviewFree ? 'Free Preview' : 'Paid'}
+                      </span>
                       <img onClick={() => handleLecture('remove', chapter.chapterId, lectureIndex)} src={assets.cross_icon} alt="" className='cursor-pointer' />
                     </div>
                   ))}
@@ -215,7 +300,7 @@ const AddCourse = () => {
           </div>
 
           {showPopup && (
-            <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
               <div className="bg-white text-gray-700 p-4 rounded relative w-full max-w-80">
                 <h2 className="text-lg font-semibold mb-4">Add Lecture</h2>
                 <div className="mb-2">
@@ -225,35 +310,69 @@ const AddCourse = () => {
                     className="mt-1 block w-full border rounded py-1 px-2"
                     value={lectureDetails.lectureTitle}
                     onChange={(e) => setLectureDetails({ ...lectureDetails, lectureTitle: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="mb-2">
                   <p>Duration (minutes)</p>
                   <input
                     type="number"
+                    min="1"
                     className="mt-1 block w-full border rounded py-1 px-2"
                     value={lectureDetails.lectureDuration}
                     onChange={(e) => setLectureDetails({ ...lectureDetails, lectureDuration: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="mb-2">
-                  <p>Lecture URL</p>
-                  <input
-                    type="text"
+                  <p>Lecture Type</p>
+                  <select
                     className="mt-1 block w-full border rounded py-1 px-2"
-                    value={lectureDetails.lectureUrl}
-                    onChange={(e) => setLectureDetails({ ...lectureDetails, lectureUrl: e.target.value })}
-                  />
+                    value={lectureDetails.lectureType}
+                    onChange={(e) => setLectureDetails({ ...lectureDetails, lectureType: e.target.value, lectureUrl: '', lectureFile: null })}
+                  >
+                    <option value="youtube">YouTube Video</option>
+                    <option value="pdf">PDF Document</option>
+                    <option value="image">Image</option>
+                  </select>
                 </div>
-                {/* <div className="flex gap-2 my-4">
-                  <p>Is Preview Free?</p>
-                  <input
-                    type="checkbox" className='mt-1 scale-125'
-                    checked={lectureDetails.isPreviewFree}
-                    onChange={(e) => setLectureDetails({ ...lectureDetails, isPreviewFree: e.target.checked })}
-                  />
-                </div> */}
-                <button type='button' className="w-full bg-blue-400 text-white px-4 py-2 rounded" onClick={addLecture}>Add</button>
+                {lectureDetails.lectureType === 'youtube' ? (
+                  <div className="mb-2">
+                    <p>YouTube URL</p>
+                    <input
+                      type="url"
+                      className="mt-1 block w-full border rounded py-1 px-2"
+                      value={lectureDetails.lectureUrl}
+                      onChange={(e) => setLectureDetails({ ...lectureDetails, lectureUrl: e.target.value })}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="mb-2">
+                    <p>Upload {lectureDetails.lectureType.toUpperCase()}</p>
+                    <input
+                      type="file"
+                      className="mt-1 block w-full"
+                      accept={lectureDetails.lectureType === 'pdf' ? '.pdf' : 'image/*'}
+                      onChange={(e) => setLectureDetails({ ...lectureDetails, lectureFile: e.target.files[0] })}
+                      required
+                    />
+                    {lectureDetails.lectureFile && (
+                      <p className="text-sm text-green-600 mt-1">
+                        Selected: {lectureDetails.lectureFile.name}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <button 
+                  type='button' 
+                  className="w-full bg-blue-400 text-white px-4 py-2 rounded mt-2 disabled:bg-blue-200"
+                  onClick={addLecture}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading...' : 'Add'}
+                </button>
                 <img onClick={() => setShowPopup(false)} src={assets.cross_icon} className='absolute top-4 right-4 w-4 cursor-pointer' alt="" />
               </div>
             </div>
@@ -261,7 +380,7 @@ const AddCourse = () => {
         </div>
 
         <button type="submit" className='bg-black text-white w-max py-2.5 px-8 rounded my-4'>
-          ADD
+          ADD COURSE
         </button>
       </form>
     </div>

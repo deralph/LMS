@@ -2,9 +2,18 @@ import { v2 as cloudinary } from 'cloudinary'
 import Course from '../models/Course.js';
 import { Purchase } from '../models/Purchase.js';
 import User from '../models/User.js';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 // controllers/educatorController.js
 
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET_KEY,
+});
 
 // update role to educator
 export const updateRoleToEducator = async (req, res) => {
@@ -50,46 +59,114 @@ console.log("user in update role ",user)
   }
 };
 
+
+
+// Configure multer for temporary file storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Create uploads directory if it doesn't exist
+    const dir = 'uploads/';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    // Preserve original file extension
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + ext);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
+
+// File upload endpoint
+export const uploadFile = async (req, res) => {
+  try {
+    const file = req.file;
+    console.log("file = ",file)
+    const { resourceType = 'auto', fileName } = req.body;
+console.log(resourceType)
+    if (!file) {
+      return res.json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Validate file type
+    const fileExt = path.extname(file.originalname).toLowerCase();
+    if (resourceType === 'raw' && fileExt !== '.pdf') {
+      fs.unlinkSync(file.path);
+      return res.json({ success: false, message: 'Only PDF files are allowed' });
+    }
+
+    // Upload to Cloudinary with proper resource type
+    const uploadOptions = {
+      resource_type: resourceType,
+      // Use original file name if provided
+      public_id: fileName ? path.parse(fileName).name : undefined,
+    };
+    console.log("uploadOptions = ",uploadOptions)
+
+    // const result = await cloudinary.uploader.upload(file.path, uploadOptions);
+    const result = await cloudinary.uploader.upload(file.path, function(res,err){console.log(res,err)});
+
+    console.log("result url = ", result.secure_url)
+
+    // Clean up the temporary file
+    fs.unlinkSync(file.path);
+
+    res.json({
+      success: true,
+      fileUrl: result.secure_url
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    
+    // Clean up temporary file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Add New Course
 export const addCourse = async (req, res) => {
+  try {
+    const { courseData, email } = req.body;
+    const imageFile = req.file;
 
-    try {
+    const userData = await User.findOne({ email });
+    const educatorId = userData._id;
 
-        const { courseData,email } = req.body
-
-        const imageFile = req.file
-
-        // const educatorId = req.auth.userId
-
-    
-    const userData = await User.findOne({email});
-    const educatorId = userData._id
-
-
-        if (!imageFile) {
-            return res.json({ success: false, message: 'Thumbnail Not Attached' })
-        }
-
-        const parsedCourseData = await JSON.parse(courseData)
-
-        parsedCourseData.educator = educatorId
-
-        const newCourse = await Course.create(parsedCourseData)
-
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path)
-
-        newCourse.courseThumbnail = imageUpload.secure_url
-
-        await newCourse.save()
-
-        res.json({ success: true, message: 'Course Added' })
-
-    } catch (error) {
-
-        res.json({ success: false, message: error.message })
-
+    if (!imageFile) {
+      return res.json({ success: false, message: 'Thumbnail Not Attached' });
     }
-}
+
+    // Upload thumbnail with public access
+    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+      access_mode: 'public' // Ensure public access
+    });
+
+    const parsedCourseData = await JSON.parse(courseData);
+    parsedCourseData.educator = educatorId;
+    parsedCourseData.courseThumbnail = imageUpload.secure_url;
+
+    const newCourse = await Course.create(parsedCourseData);
+    res.json({ success: true, message: 'Course Added' });
+
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
 
 // Get Educator Courses
 export const getEducatorCourses = async (req, res) => {
@@ -101,7 +178,7 @@ export const getEducatorCourses = async (req, res) => {
     
     const userData = await User.findOne({email});
     const educator = userData._id
-
+ 
 
         const courses = await Course.find({ educator })
 

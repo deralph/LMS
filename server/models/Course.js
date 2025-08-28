@@ -5,9 +5,14 @@ const lectureSchema = new mongoose.Schema({
     lectureTitle: { type: String, required: true },
     lectureDuration: { type: Number, required: true },
     lectureUrl: { type: String, required: true },
+    lectureType: { 
+        type: String, 
+        required: true, 
+        enum: ['youtube', 'pdf', 'image'] 
+    },
     isPreviewFree: { type: Boolean, required: true },
     lectureOrder: { type: Number, required: true }
-}, { _id: false }); 
+}, { _id: false });
 
 const chapterSchema = new mongoose.Schema({
     chapterId: { type: String, required: true },

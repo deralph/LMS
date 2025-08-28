@@ -29,12 +29,11 @@ const Player = () => {
   const [initialRating, setInitialRating] = useState(0);
   const [loading, setLoading] = useState(true);
 
-const extractVideoId = (url) => {
-  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-};
-
+  const extractVideoId = (url) => {
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   /** Find the current course and set rating if user has rated */
   const getCourseData = () => {
@@ -83,10 +82,10 @@ const extractVideoId = (url) => {
     }
   };
 
-  /** Fetch user’s course progress */
+  /** Fetch user's course progress */
   const getCourseProgress = async () => {
-    if (!userData) return; // wait until userData is loaded
-console.log("user data in get course progress",userData)
+    if (!userData) return;
+    
     try {
       const token = await getToken();
       const { data } = await axios.post(
@@ -140,6 +139,51 @@ console.log("user data in get course progress",userData)
       setLoading(false);
     }
   }, [userData, enrolledCourses, courseId]);
+
+  const renderLectureContent = (lecture) => {
+    switch (lecture.lectureType) {
+      case 'youtube':
+        return (
+          <YouTube
+            iframeClassName="w-full aspect-video"
+            videoId={extractVideoId(lecture.lectureUrl)}
+          />
+        );
+      case 'pdf':
+        return (
+          <div className="w-full h-96">
+            <iframe
+              src={`https://docs.google.com/gview?url=${encodeURIComponent(lecture.lectureUrl)}&embedded=true`}
+              className="w-full h-full"
+              title={lecture.lectureTitle}
+              frameBorder="0"
+            />
+            <div className="mt-2">
+              <a 
+                href={lecture.lectureUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 underline"
+              >
+                Download PDF
+              </a>
+            </div>
+          </div>
+        );
+      case 'image':
+        return (
+          <div className="flex justify-center">
+            <img 
+              src={lecture.lectureUrl} 
+              alt={lecture.lectureTitle}
+              className="max-w-full max-h-96 object-contain"
+            />
+          </div>
+        );
+      default:
+        return <div>Unsupported content type</div>;
+    }
+  };
 
   if (loading || !courseData) return <Loading />;
 
@@ -200,24 +244,19 @@ console.log("user data in get course progress",userData)
                         <div className="flex items-center justify-between w-full text-gray-800 text-xs md:text-default">
                           <p>{lecture.lectureTitle}</p>
                           <div className="flex gap-2">
-                            {lecture.lectureUrl && (
-                              <p
-                                onClick={() =>{
-
-                                  console.log("lecture = ",lecture)
-                                  setPlayerData({
-                                    ...lecture,
-                                    chapter: index + 1,
-                                    lecture: i + 1,
-                                  })
-                                }
-
-                                }
-                                className="text-blue-500 cursor-pointer"
-                              >
-                                Watch
-                              </p>
-                            )}
+                            <p
+                              onClick={() => {
+                                setPlayerData({
+                                  ...lecture,
+                                  chapter: index + 1,
+                                  lecture: i + 1,
+                                })
+                              }}
+                              className="text-blue-500 cursor-pointer"
+                            >
+                              {lecture.lectureType === 'youtube' ? 'Watch' : 
+                               lecture.lectureType === 'pdf' ? 'View PDF' : 'View Image'}
+                            </p>
                             <p>
                               {humanizeDuration(
                                 lecture.lectureDuration * 60 * 1000,
@@ -245,13 +284,9 @@ console.log("user data in get course progress",userData)
         <div className="md:mt-10">
           {playerData ? (
             <div>
-             <YouTube
-  iframeClassName="w-full aspect-video"
-  videoId={extractVideoId(playerData.lectureUrl)}
-/>
-
+              {renderLectureContent(playerData)}
               <div className="flex justify-between items-center mt-1">
-                <p className="text-xl ">
+                <p className="text-xl mt-8 ">
                   {playerData.chapter}.{playerData.lecture}{" "}
                   {playerData.lectureTitle}
                 </p>
@@ -270,6 +305,7 @@ console.log("user data in get course progress",userData)
             <img
               src={courseData ? courseData.courseThumbnail : ""}
               alt="course thumbnail"
+              className="w-full"
             />
           )}
         </div>
