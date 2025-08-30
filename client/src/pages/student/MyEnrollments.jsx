@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 
 const MyEnrollments = () => {
-    const { userData, enrolledCourses, fetchUserEnrolledCourses, backendUrl, getToken, calculateCourseDuration, calculateNoOfLectures } = useContext(AppContext);
+    const { userData, enrolledCourses, backendUrl, getToken, calculateCourseDuration, calculateNoOfLectures } = useContext(AppContext);
     const [progressArray, setProgressData] = useState([]);
     const navigate = useNavigate();
 
@@ -49,11 +49,11 @@ const MyEnrollments = () => {
         }
     };
 
-    useEffect(() => {
-        if (userData) {
-            fetchUserEnrolledCourses();
-        }
-    }, [userData]);
+    // useEffect(() => {
+    //     if (userData) {
+    //         fetchUserEnrolledCourses();
+    //     }
+    // }, [userData]);
 
     useEffect(() => {
         if (enrolledCourses.length > 0) {

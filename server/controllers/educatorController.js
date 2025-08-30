@@ -198,8 +198,10 @@ export const educatorDashboardData = async (req, res) => {
     const userData = await User.findOne({email});
     const educator = userData._id
 
+    
+            const courses = await Course.find({ educator })
+          .populate("enrolledStudents", "name email imageUrl");
 
-        const courses = await Course.find({ educator });
 
         const totalCourses = courses.length;
 
@@ -213,26 +215,27 @@ export const educatorDashboardData = async (req, res) => {
 
         const totalEarnings = purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
 
-        // Collect unique enrolled student IDs with their course titles
-        const enrolledStudentsData = [];
-        for (const course of courses) {
-            const students = await User.find({
-                _id: { $in: course.enrolledStudents }
-            }, 'name imageUrl');
+    // console.log("educator courses = ", courses);
 
-            students.forEach(student => {
-                enrolledStudentsData.push({
-                    courseTitle: course.courseTitle,
-                    student
-                });
-            });
-        }
-
+    // Collect enrolled students from all courses
+    const enrolledStudents = courses.flatMap(course =>
+      course.enrolledStudents.map(student => ({
+        student,
+        courseTitle: course.courseTitle,
+        enrolledDate: course.createdAt, // Or you can track specific enrollment date if you store it
+      }))
+    );
+console.log("dashboardData = ",  {
+                totalEarnings,
+                enrolledStudents,
+                totalCourses
+              })
+              console.log("enrolledStudentsData = ",enrolledStudents) 
         res.json({
             success: true,
             dashboardData: {
                 totalEarnings,
-                enrolledStudentsData,
+                enrolledStudentsData:enrolledStudents,
                 totalCourses
             }
         });

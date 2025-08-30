@@ -87,8 +87,8 @@ const StudentsEnrolled = () => {
                   <tr key={index} className="border-b border-gray-500/20 hover:bg-gray-50">
                     <td className="px-4 py-3 text-center hidden sm:table-cell">{index + 1}</td>
                     <td className="md:px-4 px-2 py-3 flex items-center space-x-3">
-                      {getAvatarFromName(item.student?.fullName)}
-                      <span className="truncate">{item.student?.fullName || 'Unknown Student'}</span>
+                      {getAvatarFromName(item.student?.email)}
+                      <span className="truncate">{item.student?.email || 'Unknown Student'}</span>
                     </td>
                     <td className="px-4 py-3 truncate">{item.courseTitle || 'Unknown Course'}</td>
                     <td className="px-4 py-3 hidden sm:table-cell">

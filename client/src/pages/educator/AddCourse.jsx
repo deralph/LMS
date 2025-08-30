@@ -12,7 +12,7 @@ const AddCourse = () => {
 
   const editorRef = useRef(null);
   const quillRef = useRef(null);
-  const { backendUrl, getToken, user } = useContext(AppContext);
+  const { backendUrl, getToken, userData } = useContext(AppContext);
 
   const [courseTitle, setCourseTitle] = useState('');
   const [coursePrice, setCoursePrice] = useState(0);
@@ -202,7 +202,7 @@ const AddCourse = () => {
       const formData = new FormData();
       formData.append('courseData', JSON.stringify(courseData));
       formData.append('image', image);
-      formData.append('email', user.email);
+      formData.append('email', userData.email);
 
       const token = await getToken();
 

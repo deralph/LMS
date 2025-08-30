@@ -64,7 +64,7 @@ const Dashboard = () => {
           <div className='flex items-center gap-3 shadow-card border border-blue-500 p-4 w-56 rounded-md'>
             <img src={assets.patients_icon} alt="patients_icon" className="w-8 h-8" />
             <div>
-              <p className='text-2xl font-medium text-gray-600'>{dashboardData.enrolledStudentsCount || 0}</p>
+              <p className='text-2xl font-medium text-gray-600'>{dashboardData.enrolledStudentsCount || dashboardData.enrolledStudentsData.length|| 0}</p>
               <p className='text-base text-gray-500'>Total Enrolments</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ const Dashboard = () => {
                 <thead className="text-gray-900 border-b border-gray-500/20 text-sm text-left">
                   <tr>
                     <th className="px-4 py-3 font-semibold text-center hidden sm:table-cell">#</th>
-                    <th className="px-4 py-3 font-semibold">Student Name</th>
+                    <th className="px-4 py-3 font-semibold">Student Mail</th>
                     <th className="px-4 py-3 font-semibold">Course Title</th>
                     <th className="px-4 py-3 font-semibold">Enrollment Date</th>
                   </tr>
@@ -96,12 +96,13 @@ const Dashboard = () => {
                     <tr key={index} className="border-b border-gray-500/20">
                       <td className="px-4 py-3 text-center hidden sm:table-cell">{index + 1}</td>
                       <td className="md:px-4 px-2 py-3 flex items-center space-x-3">
-                        {getAvatarFromName(item.student?.fullName)}
-                        <span className="truncate">{item.student?.fullName || 'Unknown Student'}</span>
+                        {getAvatarFromName(item.student?.email)}
+                        <span className="truncate">{item.student?.email || 'Unknown Student'}</span>
                       </td>
                       <td className="px-4 py-3 truncate">{item.courseTitle || 'Unknown Course'}</td>
                       <td className="px-4 py-3">
-                        {item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A'}
+                        {/* {item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A'} */}
+                        {item.enrolledDate ? new Date(item.enrolledDate).toLocaleDateString() : 'N/A'}
                       </td>
                     </tr>
                   ))}
